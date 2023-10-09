@@ -1,0 +1,17 @@
+mode.production: false
+
+app.name: "fstore_backup"
+
+logging:
+  level: "info"
+  # rolling.file: "${app.name}.log"
+
+server.enabled: false
+
+mini-fstore:
+  secret: "abcde"
+  base-url: "http://localhost:7070"
+
+backup:
+  storage: "./storage"
+  trash: "./trash"
