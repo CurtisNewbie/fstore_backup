@@ -1,8 +1,10 @@
 package fbackup
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/curtisnewbie/miso/miso"
 )
@@ -12,6 +14,10 @@ const (
 	PropBaseUrl    = "mini-fstore.base-url"
 	QryParamFileId = "fileId"
 )
+
+func init() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+}
 
 type BackupFileInf struct {
 	Id     int64
@@ -37,7 +43,7 @@ type ListBackupFileResp struct {
 
 func ListFiles(rail miso.Rail, req ListBackupFileReq) (ListBackupFileResp, error) {
 	var resp miso.GnResp[ListBackupFileResp]
-	err := miso.NewDefaultTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/list").
+	err := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/list", http.DefaultClient).
 		AddHeader("Authorization", miso.GetPropStr(PropSecret)).
 		PostJson(req).
 		Json(&resp)
@@ -48,7 +54,7 @@ func ListFiles(rail miso.Rail, req ListBackupFileReq) (ListBackupFileResp, error
 }
 
 func DownloadFile(rail miso.Rail, fileId string, writer io.Writer) error {
-	r := miso.NewDefaultTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/raw").
+	r := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/raw", http.DefaultClient).
 		AddHeader("Authorization", miso.GetPropStr(PropSecret)).
 		AddQueryParams(QryParamFileId, fileId).
 		Get()

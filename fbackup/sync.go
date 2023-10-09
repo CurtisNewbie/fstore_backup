@@ -73,6 +73,7 @@ func StartSync(rail miso.Rail) error {
 			}
 		}
 		listReq.IdOffset = listed.Files[len(listed.Files)-1].Id
+		rail.Infof("IdOffset moved to %v", listReq.IdOffset)
 	}
 }
 
