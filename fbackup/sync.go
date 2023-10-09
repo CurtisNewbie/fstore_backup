@@ -2,6 +2,7 @@ package fbackup
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -9,9 +10,11 @@ import (
 )
 
 const (
-	PageLimit   = 100
-	PropStorage = "backup.storage"
-	PropTrash   = "backup.trash"
+	PageLimit                  = 100
+	PropStorage                = "backup.storage"
+	PropTrash                  = "backup.trash"
+	PropLocalCopyEnabled       = "backup.local-copy.enabled"
+	PropLocalCopyFstoreStorage = "backup.local-copy.fstore-storage"
 
 	StatusNormal = "NORMAL"  // file.status - normal
 	StatusLDel   = "LOG_DEL" // file.status - logically deletedy
@@ -121,15 +124,42 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 		}
 	}
 
-	if download {
-		nf, err := os.Create(spath)
-		if err != nil {
-			return fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
-		}
+	if !download {
+		return nil
+	}
+
+	nf, err := os.Create(spath)
+	if err != nil {
+		return fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
+	}
+
+	doDownload := func() error {
 		if err := DownloadFile(rail, bfi.FileId, nf); err != nil {
 			return fmt.Errorf("failed to download file to %v, %v", spath, err)
 		}
+		return nil
 	}
 
-	return nil
+	if miso.GetPropBool(PropLocalCopyEnabled) {
+
+		fstoreLocalStore := miso.GetPropStr(PropLocalCopyFstoreStorage)
+		fstorePath := fstoreLocalStore + bfi.FileId
+		found, err := miso.FileExists(fstorePath)
+		if err != nil || !found {
+			rail.Infof("Failed to access mini-fstore local file, fallback to file download, %v, %v", fstorePath, err)
+			return doDownload()
+		}
+
+		fstoreFile, err := os.Open(fstorePath)
+		if err != nil {
+			rail.Infof("Failed to access mini-fstore local file, fallback to file download, %v, %v", fstorePath, err)
+			return doDownload()
+		}
+
+		rail.Infof("Copying mini-fstore file directly from %v to %v", fstorePath, spath)
+		_, err = io.Copy(nf, fstoreFile)
+		return err
+	} else {
+		return doDownload()
+	}
 }

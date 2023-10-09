@@ -15,3 +15,6 @@ mini-fstore:
 backup:
   storage: "./storage"
   trash: "./trash"
+  local-copy:
+    enabled: false
+    fstore-storage: "./mini_fstore_storage/"
