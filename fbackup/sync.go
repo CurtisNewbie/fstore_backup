@@ -62,6 +62,8 @@ func StartSync(rail miso.Rail) error {
 		Limit:    PageLimit,
 	}
 
+	var accBytes int64 = 0
+
 	for {
 		listed, err := ListFiles(rail, listReq)
 		if err != nil {
@@ -73,7 +75,8 @@ func StartSync(rail miso.Rail) error {
 		}
 		for i := range listed.Files {
 			f := listed.Files[i]
-			if err := SyncFile(rail, f, storageDir, trashDir); err != nil {
+			fetched, err := SyncFile(rail, f, storageDir, trashDir)
+			if err != nil {
 				return fmt.Errorf("failed to sync file, %v, %v", f, err)
 			}
 
@@ -81,13 +84,22 @@ func StartSync(rail miso.Rail) error {
 				rail.Info("server shutting down")
 				return nil
 			}
+
+			if fetched {
+				accBytes += f.Size
+				if accBytes > ThrottleUnit {
+					time.Sleep(time.Duration(int64(accBytes/ThrottleUnit)) * time.Second)
+					accBytes = 0
+				}
+			}
+
 		}
 		listReq.IdOffset = listed.Files[len(listed.Files)-1].Id
 		rail.Infof("IdOffset moved to %v", listReq.IdOffset)
 	}
 }
 
-func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir string) error {
+func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir string) (bool, error) {
 	rail.Infof("Sync file: %+v", bfi)
 
 	spath := storageDir + "/" + bfi.FileId
@@ -97,17 +109,17 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 	if bfi.Status != StatusNormal {
 		found, err := miso.FileExists(spath)
 		if err != nil {
-			return fmt.Errorf("failed to check if file exist, path: %v, %v", spath, err)
+			return false, fmt.Errorf("failed to check if file exist, path: %v, %v", spath, err)
 		}
 		if !found {
 			rail.Infof("File already deleted, already synced, %v", spath)
-			return nil
+			return false, nil
 		}
 		if err := os.Rename(spath, tpath); err != nil {
-			return fmt.Errorf("failed to move file from %v to %v, %v", spath, tpath, err)
+			return false, fmt.Errorf("failed to move file from %v to %v, %v", spath, tpath, err)
 		}
 		rail.Infof("Moved file from %v to %v", spath, tpath)
-		return nil
+		return false, nil
 	}
 
 	// the file should be downloaded, check if we have it already
@@ -116,7 +128,7 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to stat file, path: %v, %v", spath, err)
+			return false, fmt.Errorf("failed to stat file, path: %v, %v", spath, err)
 		}
 		rail.Infof("File %v is not found, downloading", spath)
 		download = true // file is not found at all
@@ -132,16 +144,12 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 	}
 
 	if !download {
-		return nil
+		return false, nil
 	}
 
 	nf, err := os.Create(spath)
 	if err != nil {
-		return fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
-	}
-
-	if bfi.Size > ThrottleUnit {
-		defer func() { time.Sleep(time.Duration(int64(bfi.Size/ThrottleUnit)) * time.Second) }()
+		return false, fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
 	}
 
 	doDownload := func() error {
@@ -149,6 +157,7 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 			return fmt.Errorf("failed to download file to %v, %v", spath, err)
 		}
 		return nil
+
 	}
 
 	if miso.GetPropBool(PropLocalCopyEnabled) {
@@ -158,19 +167,19 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 		found, err := miso.FileExists(fstorePath)
 		if err != nil || !found {
 			rail.Infof("Failed to access mini-fstore local file, fallback to file download, %v, %v", fstorePath, err)
-			return doDownload()
+			return true, doDownload()
 		}
 
 		fstoreFile, err := os.Open(fstorePath)
 		if err != nil {
 			rail.Infof("Failed to access mini-fstore local file, fallback to file download, %v, %v", fstorePath, err)
-			return doDownload()
+			return true, doDownload()
 		}
 
 		rail.Infof("Copying mini-fstore file directly from %v to %v", fstorePath, spath)
 		_, err = io.Copy(nf, fstoreFile)
-		return err
+		return true, err
 	} else {
-		return doDownload()
+		return true, doDownload()
 	}
 }

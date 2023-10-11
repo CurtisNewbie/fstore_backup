@@ -26,7 +26,7 @@ func TestSyncFile(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = SyncFile(rail, BackupFileInf{
+	_, err = SyncFile(rail, BackupFileInf{
 		Id:     92,
 		FileId: "file_794563461529600120059",
 		Status: StatusNormal,
