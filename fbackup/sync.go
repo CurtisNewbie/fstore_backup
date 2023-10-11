@@ -74,6 +74,11 @@ func StartSync(rail miso.Rail) error {
 			if err := SyncFile(rail, f, storageDir, trashDir); err != nil {
 				return fmt.Errorf("failed to sync file, %v, %v", f, err)
 			}
+
+			if miso.IsShuttingDown() {
+				rail.Info("server shutting down")
+				return nil
+			}
 		}
 		listReq.IdOffset = listed.Files[len(listed.Files)-1].Id
 		rail.Infof("IdOffset moved to %v", listReq.IdOffset)
@@ -132,6 +137,8 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 	if err != nil {
 		return fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
 	}
+
+	defer func() { time.Sleep(1 * time.Second) }()
 
 	doDownload := func() error {
 		if err := DownloadFile(rail, bfi.FileId, nf); err != nil {

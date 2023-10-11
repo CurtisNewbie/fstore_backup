@@ -9,10 +9,13 @@ import (
 
 func main() {
 	miso.PostServerBootstrapped(func(rail miso.Rail) error {
-		if err := fbackup.StartSync(rail); err != nil {
-			return err
-		}
-		miso.Shutdown()
+		go func() {
+			if err := fbackup.StartSync(rail); err != nil {
+				rail.Errorf("failed to sync, %v", err)
+				miso.Shutdown()
+				return
+			}
+		}()
 		return nil
 	})
 	miso.BootstrapServer(os.Args)
