@@ -20,7 +20,7 @@ const (
 	StatusLDel   = "LOG_DEL" // file.status - logically deletedy
 	StatusPDel   = "PHY_DEL" // file.status - physically deletedy
 
-	ThrottleUnit int64 = 50 * 1024 * 1024
+	ThrottleUnit int64 = 5 * 1024 * 1024
 )
 
 func init() {
@@ -88,7 +88,7 @@ func StartSync(rail miso.Rail) error {
 			if fetched {
 				accBytes += f.Size
 				if accBytes > ThrottleUnit {
-					time.Sleep(time.Duration(int64(accBytes/ThrottleUnit)) * time.Second)
+					time.Sleep(time.Duration(int64(accBytes/ThrottleUnit)) * 100 * time.Millisecond)
 					accBytes = 0
 				}
 			}
