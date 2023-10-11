@@ -19,6 +19,8 @@ const (
 	StatusNormal = "NORMAL"  // file.status - normal
 	StatusLDel   = "LOG_DEL" // file.status - logically deletedy
 	StatusPDel   = "PHY_DEL" // file.status - physically deletedy
+
+	ThrottleUnit int64 = 50 * 1024 * 1024
 )
 
 func init() {
@@ -138,7 +140,9 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 		return fmt.Errorf("failed to create file to download, path: %v, %v", spath, err)
 	}
 
-	defer func() { time.Sleep(1 * time.Second) }()
+	if bfi.Size > ThrottleUnit {
+		defer func() { time.Sleep(time.Duration(int64(bfi.Size/ThrottleUnit)) * time.Second) }()
+	}
 
 	doDownload := func() error {
 		if err := DownloadFile(rail, bfi.FileId, nf); err != nil {
