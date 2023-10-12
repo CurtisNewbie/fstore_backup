@@ -20,7 +20,7 @@ const (
 	StatusLDel   = "LOG_DEL" // file.status - logically deletedy
 	StatusPDel   = "PHY_DEL" // file.status - physically deletedy
 
-	ThrottleUnit int64 = 5 * 1024 * 1024
+	ThrottleUnit int64 = 7 * 1024 * 1024
 )
 
 func init() {
