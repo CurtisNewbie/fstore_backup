@@ -2,7 +2,7 @@ module github.com/curtisnewbie/fstore_backup
 
 go 1.20
 
-require github.com/curtisnewbie/miso v0.0.4-beta.2
+require github.com/curtisnewbie/miso v0.0.4
 
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
