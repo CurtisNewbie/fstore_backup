@@ -33,10 +33,14 @@ func TestDownloadFile(t *testing.T) {
 	fileId := "file_794563461529600120059"
 
 	f, err := os.Create(fname)
-	miso.TestIsNil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close()
 	defer os.Remove(fname)
 
 	err = DownloadFile(rail, fileId, f)
-	miso.TestIsNil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

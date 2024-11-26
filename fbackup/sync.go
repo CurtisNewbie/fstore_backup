@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/curtisnewbie/miso/miso"
+	"github.com/curtisnewbie/miso/util"
 )
 
 const (
@@ -108,7 +109,7 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 
 	// file deleted
 	if bfi.Status != StatusNormal {
-		found, err := miso.FileExists(spath)
+		found, err := util.FileExists(spath)
 		if err != nil {
 			return false, fmt.Errorf("failed to check if file exist, path: %v, %v", spath, err)
 		}
@@ -168,7 +169,7 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 
 		fstoreLocalStore := miso.GetPropStr(PropLocalCopyFstoreStorage)
 		fstorePath := fstoreLocalStore + bfi.FileId
-		found, err := miso.FileExists(fstorePath)
+		found, err := util.FileExists(fstorePath)
 		if err != nil || !found {
 			rail.Infof("Failed to access mini-fstore local file, fallback to file download, %v, %v", fstorePath, err)
 			return true, doDownload()

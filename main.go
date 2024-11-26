@@ -10,7 +10,6 @@ import (
 
 func main() {
 
-	miso.AddShutdownHook(func() { miso.MarkServerShuttingDown() }) // this is a bug
 	miso.AddShutdownHook(func() { time.Sleep(2 * time.Second) })
 
 	miso.PostServerBootstrapped(func(rail miso.Rail) error {

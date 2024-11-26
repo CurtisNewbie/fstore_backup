@@ -48,7 +48,7 @@ type ListBackupFileResp struct {
 
 func ListFiles(rail miso.Rail, req ListBackupFileReq) (ListBackupFileResp, error) {
 	var resp miso.GnResp[ListBackupFileResp]
-	err := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/list", http.DefaultClient).
+	err := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/list").
 		AddHeader("Authorization", miso.GetPropStr(PropSecret)).
 		PostJson(req).
 		Json(&resp)
@@ -59,7 +59,7 @@ func ListFiles(rail miso.Rail, req ListBackupFileReq) (ListBackupFileResp, error
 }
 
 func DownloadFile(rail miso.Rail, fileId string, writer io.Writer) error {
-	r := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/raw", http.DefaultClient).
+	r := miso.NewTClient(rail, miso.GetPropStr(PropBaseUrl)+"/fstore/backup/file/raw").
 		AddHeader("Authorization", miso.GetPropStr(PropSecret)).
 		AddQueryParams(QryParamFileId, fileId).
 		Get()
