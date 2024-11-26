@@ -17,9 +17,9 @@ func main() {
 		go func() {
 			if err := fbackup.StartSync(rail); err != nil {
 				rail.Errorf("failed to sync, %v", err)
-				miso.Shutdown()
 				return
 			}
+			miso.Shutdown()
 		}()
 		return nil
 	})

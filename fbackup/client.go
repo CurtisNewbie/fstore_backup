@@ -2,6 +2,7 @@ package fbackup
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,10 @@ const (
 	PropSecret     = "mini-fstore.secret"
 	PropBaseUrl    = "mini-fstore.base-url"
 	QryParamFileId = "fileId"
+)
+
+var (
+	ErrFileNotFound = errors.New("file not found")
 )
 
 func init() {
@@ -58,8 +63,12 @@ func DownloadFile(rail miso.Rail, fileId string, writer io.Writer) error {
 		AddHeader("Authorization", miso.GetPropStr(PropSecret)).
 		AddQueryParams(QryParamFileId, fileId).
 		Get()
+
 	if r.Err != nil {
 		return fmt.Errorf("unable to download file, fileId: %v, %v", fileId, r.Err)
+	}
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("unable to download file, file is not found (404), fileId: %v, %w", fileId, ErrFileNotFound)
 	}
 	_, err := io.Copy(writer, r.Resp.Body)
 	return err

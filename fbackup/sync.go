@@ -1,6 +1,7 @@
 package fbackup
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -154,10 +155,13 @@ func SyncFile(rail miso.Rail, bfi BackupFileInf, storageDir string, trashDir str
 
 	doDownload := func() error {
 		if err := DownloadFile(rail, bfi.FileId, nf); err != nil {
+			if errors.Is(err, ErrFileNotFound) {
+				rail.Warnf("Failed to download file %v, the file is not found, maybe deleted by accident or the disk is corrupted, skipped", bfi.FileId)
+				return nil
+			}
 			return fmt.Errorf("failed to download file to %v, %v", spath, err)
 		}
 		return nil
-
 	}
 
 	if miso.GetPropBool(PropLocalCopyEnabled) {
